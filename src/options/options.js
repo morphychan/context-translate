@@ -422,9 +422,119 @@ twpConfig.onReady(function () {
     // translations options
     $("#pageTranslatorService").onchange = e => {
         twpConfig.set("pageTranslatorService", e.target.value)
+        updateLLMSettingsVisibility()
     }
     $("#pageTranslatorService").value = twpConfig.get("pageTranslatorService")
 
+    // ============ LLM Settings ============
+
+    // Show/hide LLM settings based on selected translation service
+    function updateLLMSettingsVisibility() {
+        const service = $("#pageTranslatorService").value
+        const llmSection = $("#llmSettingsSection")
+        if (service === "llm") {
+            llmSection.style.display = "block"
+        } else {
+            llmSection.style.display = "none"
+        }
+    }
+
+    // Show/hide provider-specific settings
+    function updateProviderSettingsVisibility() {
+        const provider = $("#llmProvider").value
+        const ollamaSettings = $("#ollamaSettings")
+        const openrouterSettings = $("#openrouterSettings")
+
+        if (provider === "ollama") {
+            ollamaSettings.style.display = "block"
+            openrouterSettings.style.display = "none"
+        } else {
+            ollamaSettings.style.display = "none"
+            openrouterSettings.style.display = "block"
+        }
+    }
+
+    // LLM Provider selection
+    $("#llmProvider").onchange = e => {
+        twpConfig.set("llmProvider", e.target.value)
+        updateProviderSettingsVisibility()
+    }
+    $("#llmProvider").value = twpConfig.get("llmProvider") || "ollama"
+
+    // Ollama settings
+    $("#ollamaApiUrl").onchange = e => {
+        twpConfig.set("ollamaApiUrl", e.target.value)
+    }
+    $("#ollamaApiUrl").value = twpConfig.get("ollamaApiUrl") || "http://localhost:11434"
+
+    $("#ollamaModel").onchange = e => {
+        twpConfig.set("ollamaModel", e.target.value)
+    }
+    $("#ollamaModel").value = twpConfig.get("ollamaModel") || "qwen2.5:7b"
+
+    // OpenRouter settings
+    $("#openrouterApiUrl").onchange = e => {
+        twpConfig.set("openrouterApiUrl", e.target.value)
+    }
+    $("#openrouterApiUrl").value = twpConfig.get("openrouterApiUrl") || "https://openrouter.ai/api/v1"
+
+    $("#openrouterApiKey").onchange = e => {
+        twpConfig.set("openrouterApiKey", e.target.value)
+    }
+    $("#openrouterApiKey").value = twpConfig.get("openrouterApiKey") || ""
+
+    $("#openrouterModel").onchange = e => {
+        twpConfig.set("openrouterModel", e.target.value)
+    }
+    $("#openrouterModel").value = twpConfig.get("openrouterModel") || "anthropic/claude-3-haiku"
+
+    // Advanced LLM settings
+    $("#llmTemperature").onchange = e => {
+        twpConfig.set("llmTemperature", parseFloat(e.target.value) || 0.3)
+    }
+    $("#llmTemperature").value = twpConfig.get("llmTemperature") || 0.3
+
+    $("#llmMaxTokens").onchange = e => {
+        twpConfig.set("llmMaxTokens", parseInt(e.target.value) || 2000)
+    }
+    $("#llmMaxTokens").value = twpConfig.get("llmMaxTokens") || 2000
+
+    $("#llmPromptTemplate").onchange = e => {
+        twpConfig.set("llmPromptTemplate", e.target.value)
+    }
+    $("#llmPromptTemplate").value = twpConfig.get("llmPromptTemplate") || ""
+
+    $("#llmDebugMode").onchange = e => {
+        twpConfig.set("llmDebugMode", e.target.value)
+    }
+    $("#llmDebugMode").value = twpConfig.get("llmDebugMode") || "no"
+
+    // Test Connection button
+    $("#testLLMConnection").onclick = e => {
+        const statusEl = $("#llmConnectionStatus")
+        statusEl.textContent = "Testing..."
+        statusEl.style.color = "#666"
+
+        chrome.runtime.sendMessage({ action: "testLLMConnection" }, result => {
+            if (chrome.runtime.lastError) {
+                statusEl.textContent = "Error: " + chrome.runtime.lastError.message
+                statusEl.style.color = "red"
+                return
+            }
+
+            if (result && result.success) {
+                statusEl.innerHTML = `<span style="color: green;">✓ ${result.message}</span><br><small>Model: ${result.model}<br>Test: "Hello" → "${result.testTranslation}"</small>`
+            } else {
+                statusEl.innerHTML = `<span style="color: red;">✗ ${result ? result.message : "Unknown error"}</span>`
+            }
+        })
+    }
+
+    // Initialize visibility
+    updateLLMSettingsVisibility()
+    updateProviderSettingsVisibility()
+
+    // ============ End LLM Settings ============
 
     $("#translateTag_pre").onchange = e => {
         twpConfig.set("translateTag_pre", e.target.value)

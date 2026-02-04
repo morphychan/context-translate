@@ -6,7 +6,7 @@ const twpConfig = (function () {
   const defaultTargetLanguages = ["zh-CN"];
   /**
    * all configName available
-   * @typedef {"pageTranslatorService" | "textTranslatorService" | "ttsSpeed" | "enableDeepL" | "targetLanguage" | "targetLanguageTextTranslation" | "targetLanguages" | "alwaysTranslateSites" | "neverTranslateSites" | "sitesToTranslateWhenHovering" | "langsToTranslateWhenHovering" | "alwaysTranslateLangs" | "neverTranslateLangs" | "customDictionary" | "showTranslatePageContextMenu" | "showTranslateSelectedContextMenu" | "showButtonInTheAddressBar" | "showOriginalTextWhenHovering" | "showTranslateSelectedButton" | "showPopupMobile" | "useOldPopup" | "darkMode" | "popupBlueWhenSiteIsTranslated" | "popupPanelSection" | "showReleaseNotes" | "dontShowIfPageLangIsTargetLang" | "dontShowIfPageLangIsUnknown" | "dontShowIfSelectedTextIsTargetLang" | "dontShowIfSelectedTextIsUnknown" | "hotkeys" | "expandPanelTranslateSelectedText" | "translateTag_pre" | "dontSortResults" | "translateDynamicallyCreatedContent" | "autoTranslateWhenClickingALink" | "translateSelectedWhenPressTwice" | "translateTextOverMouseWhenPressTwice" | "translateClickingOnce"} DefaultConfigNames
+   * @typedef {"pageTranslatorService" | "textTranslatorService" | "ttsSpeed" | "enableDeepL" | "targetLanguage" | "targetLanguageTextTranslation" | "targetLanguages" | "alwaysTranslateSites" | "neverTranslateSites" | "sitesToTranslateWhenHovering" | "langsToTranslateWhenHovering" | "alwaysTranslateLangs" | "neverTranslateLangs" | "customDictionary" | "showTranslatePageContextMenu" | "showTranslateSelectedContextMenu" | "showButtonInTheAddressBar" | "showOriginalTextWhenHovering" | "showTranslateSelectedButton" | "showPopupMobile" | "useOldPopup" | "darkMode" | "popupBlueWhenSiteIsTranslated" | "popupPanelSection" | "showReleaseNotes" | "dontShowIfPageLangIsTargetLang" | "dontShowIfPageLangIsUnknown" | "dontShowIfSelectedTextIsTargetLang" | "dontShowIfSelectedTextIsUnknown" | "hotkeys" | "expandPanelTranslateSelectedText" | "translateTag_pre" | "dontSortResults" | "translateDynamicallyCreatedContent" | "autoTranslateWhenClickingALink" | "translateSelectedWhenPressTwice" | "translateTextOverMouseWhenPressTwice" | "translateClickingOnce" | "llmProvider" | "ollamaApiUrl" | "ollamaModel" | "openrouterApiKey" | "openrouterApiUrl" | "openrouterModel" | "llmTemperature" | "llmMaxTokens" | "llmPromptTemplate" | "llmDebugMode"} DefaultConfigNames
    */
   const defaultConfig = {
     pageTranslatorService: "google", // google yandex
@@ -42,6 +42,17 @@ const twpConfig = (function () {
     translateDynamicallyCreatedContent: "yes",
     autoTranslateWhenClickingALink: "no",
 
+    // LLM Provider Settings
+    llmProvider: "ollama",                          // "ollama" | "openrouter"
+    ollamaApiUrl: "http://localhost:11434",         // Ollama API URL
+    ollamaModel: "qwen2.5:7b",                      // Ollama model name
+    openrouterApiKey: "",                           // OpenRouter API Key
+    openrouterApiUrl: "https://openrouter.ai/api/v1", // OpenRouter API URL
+    openrouterModel: "anthropic/claude-3-haiku",    // OpenRouter model name
+    llmTemperature: 0.3,                            // temperature for translation
+    llmMaxTokens: 2000,                             // max tokens
+    llmPromptTemplate: "",                          // custom prompt template, empty = use default
+    llmDebugMode: "no",                             // "yes" | "no"
   };
   const config = structuredClone(defaultConfig);
 

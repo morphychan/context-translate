@@ -107,6 +107,6 @@
 
     "background": {
         "persistent": true,
-        "scripts": ["/lib/languages.js", "/lib/config.js", "/lib/platformInfo.js", "/lib/util.js","/background/translationCache.js", "/background/translationService.js",  "/background/background.js"]
+        "scripts": ["/lib/languages.js", "/lib/config.js", "/lib/platformInfo.js", "/lib/util.js", "/lib/llmProviders.js", "/background/translationCache.js", "/background/translationService.js", "/background/background.js"]
     }
 }

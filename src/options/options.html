@@ -187,7 +187,66 @@
                 <select id="pageTranslatorService" class="w3-select w3-margin">
                     <option value="google">Google</option>
                     <option value="yandex">Yandex</option>
+                    <option value="llm">LLM (Ollama / OpenRouter)</option>
                 </select>
+
+                <!-- LLM Settings Section -->
+                <div id="llmSettingsSection" class="w3-container w3-light-grey w3-round w3-padding w3-margin" style="display: none;">
+                    <h4><b>LLM Settings</b></h4>
+
+                    <!-- Provider Selection -->
+                    <p><b>Provider</b></p>
+                    <select id="llmProvider" class="w3-select w3-margin-bottom">
+                        <option value="ollama">Ollama (Local)</option>
+                        <option value="openrouter">OpenRouter (Cloud)</option>
+                    </select>
+
+                    <!-- Ollama Settings -->
+                    <div id="ollamaSettings">
+                        <p><b>Ollama API URL</b></p>
+                        <input id="ollamaApiUrl" class="w3-input w3-border w3-margin-bottom" type="text" placeholder="http://localhost:11434">
+                        <p><b>Ollama Model</b></p>
+                        <input id="ollamaModel" class="w3-input w3-border w3-margin-bottom" type="text" placeholder="qwen2.5:7b">
+                    </div>
+
+                    <!-- OpenRouter Settings -->
+                    <div id="openrouterSettings" style="display: none;">
+                        <p><b>OpenRouter API URL</b></p>
+                        <input id="openrouterApiUrl" class="w3-input w3-border w3-margin-bottom" type="text" placeholder="https://openrouter.ai/api/v1">
+                        <p><b>OpenRouter API Key</b></p>
+                        <input id="openrouterApiKey" class="w3-input w3-border w3-margin-bottom" type="password" placeholder="sk-or-...">
+                        <p><b>OpenRouter Model</b></p>
+                        <input id="openrouterModel" class="w3-input w3-border w3-margin-bottom" type="text" placeholder="anthropic/claude-3-haiku">
+                    </div>
+
+                    <!-- Advanced Settings (collapsible) -->
+                    <details class="w3-margin-top">
+                        <summary style="cursor: pointer;"><b>Advanced Settings</b></summary>
+                        <div class="w3-padding-top">
+                            <p><b>Temperature</b> <small style="color:#999;">(0.0 - 1.0, lower = more consistent)</small></p>
+                            <input id="llmTemperature" class="w3-input w3-border w3-margin-bottom" type="number" step="0.1" min="0" max="1" placeholder="0.3">
+
+                            <p><b>Max Tokens</b></p>
+                            <input id="llmMaxTokens" class="w3-input w3-border w3-margin-bottom" type="number" min="100" max="8000" placeholder="2000">
+
+                            <p><b>Custom Prompt Template</b> <small style="color:#999;">(use {text} and {targetLang} as placeholders)</small></p>
+                            <textarea id="llmPromptTemplate" class="w3-input w3-border w3-margin-bottom" rows="3" placeholder="Leave empty to use default prompt"></textarea>
+
+                            <p><b>Debug Mode</b> <small style="color:#999;">(show detailed logs in console)</small></p>
+                            <select id="llmDebugMode" class="w3-select w3-margin-bottom">
+                                <option value="no">No</option>
+                                <option value="yes">Yes</option>
+                            </select>
+                        </div>
+                    </details>
+
+                    <!-- Test Connection Button -->
+                    <div class="w3-margin-top">
+                        <button id="testLLMConnection" class="w3-button w3-blue w3-round">Test Connection</button>
+                        <span id="llmConnectionStatus" class="w3-margin-left"></span>
+                    </div>
+                </div>
+
                 <br>
                 <p><b data-i18n="lblTranslateDynamicallyCreatedContent">Translate dynamically created content</b></p>
                 <select id="translateDynamicallyCreatedContent" class="w3-select w3-margin">

@@ -1076,6 +1076,149 @@ const translationService = (function () {
     }
   })();
 
+  /**
+   * LLM-based translation service
+   * Supports Ollama (local) and OpenRouter (cloud)
+   * Falls back to Google Translate on error
+   */
+  const llmService = new (class {
+    constructor() {
+      this.serviceName = "llm";
+      /** @type {Map<string, any>} */
+      this.translationsInProgress = new Map();
+    }
+
+    /**
+     * Get current LLM config from twpConfig
+     * @returns {object} LLM configuration
+     */
+    _getConfig() {
+      return {
+        llmProvider: twpConfig.get("llmProvider"),
+        ollamaApiUrl: twpConfig.get("ollamaApiUrl"),
+        ollamaModel: twpConfig.get("ollamaModel"),
+        openrouterApiKey: twpConfig.get("openrouterApiKey"),
+        openrouterApiUrl: twpConfig.get("openrouterApiUrl"),
+        openrouterModel: twpConfig.get("openrouterModel"),
+        llmTemperature: twpConfig.get("llmTemperature"),
+        llmMaxTokens: twpConfig.get("llmMaxTokens"),
+        llmPromptTemplate: twpConfig.get("llmPromptTemplate"),
+        llmDebugMode: twpConfig.get("llmDebugMode"),
+      };
+    }
+
+    /**
+     * Get language name for prompt (more natural than code)
+     * @param {string} langCode - Language code like "zh-CN"
+     * @returns {string} Language name like "Simplified Chinese"
+     */
+    _getLangName(langCode) {
+      const langNames = {
+        "zh-CN": "Simplified Chinese",
+        "zh-TW": "Traditional Chinese",
+        "en": "English",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "fr": "French",
+        "de": "German",
+        "es": "Spanish",
+        "pt": "Portuguese",
+        "ru": "Russian",
+        "ar": "Arabic",
+        "hi": "Hindi",
+        "it": "Italian",
+        "nl": "Dutch",
+        "pl": "Polish",
+        "vi": "Vietnamese",
+        "th": "Thai",
+        "id": "Indonesian",
+        "ms": "Malay",
+        "tr": "Turkish",
+      };
+      return langNames[langCode] || langCode;
+    }
+
+    /**
+     * Translate using LLM provider
+     * @param {string} sourceLanguage
+     * @param {string} targetLanguage
+     * @param {Array<string[]>} sourceArray2d
+     * @param {boolean} dontSaveInPersistentCache
+     * @param {boolean} dontSortResults
+     * @returns {Promise<string[][]>}
+     */
+    async translate(
+      sourceLanguage,
+      targetLanguage,
+      sourceArray2d,
+      dontSaveInPersistentCache = false,
+      dontSortResults = false
+    ) {
+      const config = this._getConfig();
+      const targetLangName = this._getLangName(targetLanguage);
+
+      try {
+        const provider = llmProviders.createProvider(config);
+        llmProviders.Logger.info(provider.name, `Translating ${sourceArray2d.length} segments to ${targetLangName}`);
+
+        const results = [];
+
+        for (const sourceArray of sourceArray2d) {
+          // Combine array into single text for translation
+          const sourceText = sourceArray.join("\n");
+
+          // Check cache first
+          const cacheKey = `${this.serviceName},${sourceLanguage},${targetLanguage},${sourceText}`;
+          const cachedResult = await translationCache.get(
+            this.serviceName,
+            sourceLanguage,
+            targetLanguage,
+            sourceText
+          );
+
+          if (cachedResult) {
+            llmProviders.Logger.debug(provider.name, "Cache hit");
+            results.push(cachedResult.translatedText.split("\n"));
+            continue;
+          }
+
+          // Translate with LLM
+          const translatedText = await provider.translate(sourceText, targetLangName, sourceLanguage);
+
+          // Save to cache
+          if (!dontSaveInPersistentCache) {
+            translationCache.set(
+              this.serviceName,
+              sourceLanguage,
+              targetLanguage,
+              sourceText,
+              translatedText,
+              sourceLanguage
+            );
+          }
+
+          results.push(translatedText.split("\n"));
+        }
+
+        llmProviders.Logger.info(provider.name, `Translation completed`);
+        return results;
+
+      } catch (error) {
+        llmProviders.Logger.error("llm", `Translation failed: ${error.message}`, { error });
+
+        // Fallback to Google Translate
+        llmProviders.Logger.warn("llm", "Falling back to Google Translate");
+        return await googleService.translate(
+          sourceLanguage,
+          targetLanguage,
+          sourceArray2d,
+          dontSaveInPersistentCache,
+          dontSortResults
+        );
+      }
+    }
+  })();
+
   /** @type {Map<string, Service>} */
   const serviceList = new Map();
 
@@ -1085,6 +1228,10 @@ const translationService = (function () {
   serviceList.set(
     "deepl",
     /** @type {Service} */ /** @type {?} */ (deeplService)
+  );
+  serviceList.set(
+    "llm",
+    /** @type {Service} */ /** @type {?} */ (llmService)
   );
 
   translationService.translateHTML = async (
@@ -1205,6 +1352,20 @@ const translationService = (function () {
         .catch((e) => {
           sendResponse();
           console.error(e);
+        });
+
+      return true;
+    } else if (request.action === "testLLMConnection") {
+      // Test LLM connection from options page
+      const config = llmService._getConfig();
+      const provider = llmProviders.createProvider(config);
+      provider.testConnection()
+        .then((result) => sendResponse(result))
+        .catch((e) => {
+          sendResponse({
+            success: false,
+            message: e.message
+          });
         });
 
       return true;
