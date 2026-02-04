@@ -20,7 +20,11 @@ const llmProviders = (function () {
       const timestamp = new Date().toISOString().substr(11, 12);
       const prefix = `[${timestamp}] [LLM:${provider}]`;
       if (data && Object.keys(data).length > 0) {
-        return [prefix, message, data];
+        try {
+          return [prefix, message, JSON.stringify(data, null, 2)];
+        } catch (e) {
+          return [prefix, message, String(data)];
+        }
       }
       return [prefix, message];
     },
@@ -43,6 +47,33 @@ const llmProviders = (function () {
       console.error(...this._format("ERROR", provider, message, data));
     }
   };
+
+  /**
+   * Fetch with timeout support
+   * @param {string} url - Request URL
+   * @param {object} options - Fetch options
+   * @param {number} timeoutMs - Timeout in milliseconds (default: 120000)
+   * @returns {Promise<Response>}
+   */
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 120000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      return response;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timeout after ${timeoutMs / 1000}s`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
 
   /**
    * Base class for LLM providers
@@ -172,6 +203,53 @@ ${combined}`;
     async _callAPI(prompt) {
       throw new Error("_callAPI() must be implemented by subclass");
     }
+
+    /**
+     * Call API with retry support
+     * @param {string} prompt - The prompt to send
+     * @param {number} maxRetries - Max retry attempts (default: 1)
+     * @returns {Promise<string>} The response text
+     */
+    async _callAPIWithRetry(prompt, maxRetries = 1) {
+      let lastError;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          return await this._callAPI(prompt);
+        } catch (error) {
+          lastError = error;
+
+          // Don't retry for non-recoverable errors
+          const nonRetryableErrors = [
+            'not found',
+            'not configured',
+            'API key',
+            '401',
+            '403',
+            '404'
+          ];
+
+          const shouldRetry = !nonRetryableErrors.some(msg =>
+            error.message.toLowerCase().includes(msg.toLowerCase())
+          );
+
+          if (!shouldRetry || attempt === maxRetries) {
+            throw error;
+          }
+
+          const delay = 2000 * (attempt + 1); // 2s, 4s, ...
+          Logger.warn(this.name, `Request failed, retrying in ${delay/1000}s`, {
+            attempt: attempt + 1,
+            maxRetries,
+            error: error.message
+          });
+
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+
+      throw lastError;
+    }
   }
 
   /**
@@ -200,7 +278,7 @@ ${combined}`;
         promptLength: prompt.length
       });
 
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -212,7 +290,7 @@ ${combined}`;
           max_tokens: this.config.llmMaxTokens || 2000,
           stream: false
         })
-      });
+      }, 120000);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -235,7 +313,7 @@ ${combined}`;
 
     async translate(text, targetLang, sourceLang = "auto") {
       const prompt = this.buildPrompt(text, targetLang);
-      return await this._callAPI(prompt);
+      return await this._callAPIWithRetry(prompt, 1);
     }
 
     async testConnection() {
@@ -244,7 +322,7 @@ ${combined}`;
         const tagsUrl = `${this.baseUrl}/api/tags`;
         Logger.debug(this.name, "Testing connection", { url: tagsUrl });
 
-        const response = await fetch(tagsUrl);
+        const response = await fetchWithTimeout(tagsUrl, {}, 10000); // 10s timeout for connection test
 
         if (!response.ok) {
           return {
@@ -322,12 +400,12 @@ ${combined}`;
         promptLength: prompt.length
       });
 
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${this.apiKey}`,
-          "HTTP-Referer": "https://github.com/anthropics/context-translate",
+          "HTTP-Referer": "https://github.com/morphychan/context-translate",
           "X-Title": "Context Translate"
         },
         body: JSON.stringify({
@@ -336,7 +414,7 @@ ${combined}`;
           temperature: this.config.llmTemperature || 0.3,
           max_tokens: this.config.llmMaxTokens || 2000
         })
-      });
+      }, 60000); // 60s timeout for cloud API
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -361,7 +439,7 @@ ${combined}`;
 
     async translate(text, targetLang, sourceLang = "auto") {
       const prompt = this.buildPrompt(text, targetLang);
-      return await this._callAPI(prompt);
+      return await this._callAPIWithRetry(prompt, 1);
     }
 
     async testConnection() {

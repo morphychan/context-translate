@@ -5139,7 +5139,12 @@ const twpLang = (function () {
       "tr",
       "uk",
     ],
+    // LLM supports all languages that Google supports
+    llm: null,  // Will be set below
   };
+
+  // LLM theoretically supports all languages, use Google's list
+  twpLang.SupportedLanguages.llm = twpLang.SupportedLanguages.google;
 
   twpLang.UILanguages = Object.keys(allLanguagesNames);
   twpLang.TargetLanguages = Object.keys(allLanguagesNames["en"]);
@@ -5156,7 +5161,7 @@ const twpLang = (function () {
 
   /** @type {Map<string, string>} */
   const alternatives = new Map();
-  const pageTranslationServices = ["google", "yandex"];
+  const pageTranslationServices = ["google", "yandex", "llm"];
   /**
    * gets an alternate translation service if the selected translation service does not support the current target language.
    * @param {string} lang
