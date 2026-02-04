@@ -96,4 +96,4 @@ npm run build     # 全部构建
 
 ## License
 
-[MIT](LICENSE)
+[MPL 2.0 (Mozilla Public License)](LICENSE)
